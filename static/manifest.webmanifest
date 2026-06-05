@@ -1,0 +1,18 @@
+{
+  "name": "RecallLens",
+  "short_name": "RecallLens",
+  "description": "Local-first natural language search for everyday object photos.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7f2",
+  "theme_color": "#2f5d50",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

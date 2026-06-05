@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RecallLens Static</title>
+    <meta name="theme-color" content="#2f5d50" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local fallback UI</p>
+          <h1>RecallLens</h1>
+        </div>
+        <form id="api-form" class="api-form">
+          <label>
+            <span>API</span>
+            <input id="api-base" autocomplete="off" />
+          </label>
+          <button type="submit">Connect</button>
+        </form>
+      </header>
+
+      <section id="status" class="status">Connecting...</section>
+
+      <nav class="tabs" aria-label="Views">
+        <button class="tab active" data-view="search" type="button">Search</button>
+        <button class="tab" data-view="upload" type="button">Upload</button>
+        <button class="tab" data-view="library" type="button">Library</button>
+        <button class="tab" data-view="tags" type="button">Tags</button>
+        <button class="tab" data-view="history" type="button">History</button>
+      </nav>
+
+      <section id="search-view" class="view active">
+        <form id="search-form" class="panel search-form">
+          <label class="query">
+            <span>Ask</span>
+            <input id="query" placeholder="Where are my keys?" required />
+          </label>
+          <div class="grid four">
+            <label>
+              <span>Top</span>
+              <input id="limit" type="number" min="1" max="30" value="5" />
+            </label>
+            <label>
+              <span>From</span>
+              <input id="captured-from" type="date" />
+            </label>
+            <label>
+              <span>To</span>
+              <input id="captured-to" type="date" />
+            </label>
+            <label>
+              <span>Place</span>
+              <input id="location-filter" placeholder="desk" />
+            </label>
+          </div>
+          <div class="actions search-actions">
+            <button id="voice-button" type="button">Voice</button>
+            <button class="primary" type="submit">Search</button>
+          </div>
+        </form>
+        <div id="results" class="cards"></div>
+      </section>
+
+      <section id="upload-view" class="view">
+        <form id="upload-form" class="panel upload-form">
+          <label class="file-drop">
+            <span id="file-label">Choose or take a photo</span>
+            <input id="image" type="file" accept="image/*" capture="environment" required />
+          </label>
+          <div class="grid two">
+            <label>
+              <span>Captured</span>
+              <input id="captured-at" type="datetime-local" />
+            </label>
+            <label>
+              <span>Place</span>
+              <input id="location-label" placeholder="entry shelf" />
+            </label>
+            <label class="wide">
+              <span>Notes</span>
+              <textarea id="note" rows="4" placeholder="keys beside the mail tray"></textarea>
+            </label>
+          </div>
+          <div class="actions">
+            <button id="gps-button" type="button">Use GPS</button>
+            <button class="primary" type="submit">Index Photo</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="library-view" class="view">
+        <div id="library" class="cards"></div>
+      </section>
+
+      <section id="tags-view" class="view">
+        <div id="tags" class="tag-list"></div>
+      </section>
+
+      <section id="history-view" class="view">
+        <div id="queries" class="query-list"></div>
+      </section>
+
+      <aside id="detail" class="detail empty">Select a photo to inspect it.</aside>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -17,26 +17,32 @@
 ## 系统架构
 
 ```mermaid
+%%{init:{"theme":"base","themeVariables":{"primaryTextColor":"#0a1f3d","lineColor":"#90a4ae","fontFamily":"system-ui,sans-serif","fontSize":"13px"}}}%%
 graph TB
-    subgraph 前端
-        A[React PWA]
-        B[静态回退 UI]
+    classDef fe fill:#dce5ef,stroke:#3a6b9f,stroke-width:1.4px,color:#0a1f3d
+    classDef be fill:#e2e8f0,stroke:#4a6278,stroke-width:1.4px,color:#0a1f3d
+    classDef db fill:#ede8e0,stroke:#7d6e5d,stroke-width:1.4px,color:#0a1f3d
+    classDef ai fill:#e6dfe8,stroke:#6b4d7a,stroke-width:1.4px,color:#0a1f3d
+
+    subgraph Frontend["前端"]
+        A(["React PWA"]):::fe
+        B(["静态回退 UI"]):::fe
     end
 
-    subgraph 后端 FastAPI
-        C[API 路由]
-        D[RecallLens 服务层]
+    subgraph Backend["后端 · FastAPI"]
+        C["API 路由"]:::be
+        D["RecallLens 服务层"]:::be
     end
 
-    subgraph 数据层
-        E[(SQLite)]
-        F[本地图片存储]
-        G[向量索引<br/>FAISS / NumPy]
+    subgraph Data["数据层"]
+        E[("SQLite")]:::db
+        F["本地图片存储"]:::db
+        G["向量索引 · FAISS / NumPy"]:::db
     end
 
-    subgraph AI 模型
-        H[CLIP<br/>open_clip_torch]
-        I[语义标签器]
+    subgraph Model["AI 模型"]
+        H["CLIP · open_clip_torch"]:::ai
+        I["语义标签器"]:::ai
     end
 
     A --> C
@@ -71,6 +77,7 @@ RECALLLENS_EMBEDDER=hash uv run uvicorn backend.app.main:app --reload --port 800
 ## 上传流程
 
 ```mermaid
+%%{init:{"theme":"base","themeVariables":{"primaryTextColor":"#0a1f3d","lineColor":"#7a8f9e","actorTextColor":"#0a1f3d","actorBkg":"#dce5ef","actorBorder":"#3a6b9f","actorLineColor":"#7a8f9e","noteBkgColor":"#f5f0eb","noteTextColor":"#0a1f3d","noteBorderColor":"#a09080","labelBoxBkgColor":"#e2e8f0","labelBoxBorderColor":"#4a6278","labelTextColor":"#0a1f3d","loopTextColor":"#0a1f3d","fontFamily":"system-ui,sans-serif","fontSize":"13px"}}}%%
 sequenceDiagram
     participant U as 用户
     participant API as FastAPI
@@ -81,33 +88,46 @@ sequenceDiagram
     participant DB as SQLite
 
     U->>API: POST /api/images（图片 + 可选元数据）
-    API->>S: 保存原图 + 生成缩略图
-    S->>DB: 写入图片记录（status: processing）
-    S->>E: 编码图片向量
-    E->>L: 生成语义标签（物体/场景/颜色）
-    E->>V: 添加到向量索引
-    V->>DB: 更新记录（status: indexed）
+    rect rgba(220, 229, 239, 0.15)
+        API->>S: 保存原图 + 生成缩略图
+        S->>DB: 写入图片记录（status: processing）
+    end
+    rect rgba(230, 223, 232, 0.2)
+        S->>E: 编码图片向量
+        E->>L: 生成语义标签（物体 / 场景 / 颜色）
+        E->>V: 添加到向量索引
+    end
+    rect rgba(237, 232, 224, 0.15)
+        V->>DB: 更新记录（status: indexed）
+    end
     API-->>U: 返回图片记录 + 元数据
 ```
 
 ## 搜索流程
 
 ```mermaid
-flowchart TD
-    A[用户输入查询文本] --> B[CLIP 编码查询向量]
-    B --> C[向量索引 Top-K 检索]
-    C --> D{解析过滤条件}
-    D -->|显式指定| E[使用 capturedFrom / capturedTo / locationText]
-    D -->|未指定| F[从查询文本推断日期范围]
-    E --> G[候选集筛选]
+%%{init:{"theme":"base","themeVariables":{"primaryTextColor":"#0a1f3d","lineColor":"#7a8f9e","fontFamily":"system-ui,sans-serif","fontSize":"13px"}}}%%
+flowchart LR
+    classDef input fill:#dce5ef,stroke:#3a6b9f,stroke-width:1.4px,color:#0a1f3d
+    classDef process fill:#e2e8f0,stroke:#4a6278,stroke-width:1.4px,color:#0a1f3d
+    classDef decision fill:#f5f0eb,stroke:#7d6e5d,stroke-width:1.4px,color:#0a1f3d
+    classDef score fill:#e6dfe8,stroke:#6b4d7a,stroke-width:1.4px,color:#0a1f3d
+    classDef result fill:#dce5ef,stroke:#3a6b9f,stroke-width:1.4px,color:#0a1f3d
+
+    A["查询文本"]:::input --> B["CLIP 编码向量"]:::process
+    B --> C["向量索引 Top-K"]:::process
+    C --> D{"解析过滤条件"}:::decision
+    D -->|"显式指定"| E["capturedFrom / To<br/>locationText"]:::process
+    D -->|"未指定"| F["推断日期范围"]:::process
+    E --> G["候选集筛选"]:::process
     F --> G
-    G --> H[混合评分]
-    H --> I[向量语义匹配 × 0.65]
-    H --> J[元数据加分<br/>文件名 / 笔记 / 标签 / 位置]
-    I --> K[合并排序，返回 Top-N]
+    G --> H["混合评分"]:::score
+    H --> I["向量匹配 × 0.65"]:::score
+    H --> J["元数据加分"]:::score
+    I --> K["合并排序 Top-N"]:::result
     J --> K
-    K --> L[保存查询记录]
-    L --> M[返回搜索结果]
+    K --> L["保存查询记录"]:::result
+    L --> M["返回搜索结果"]:::result
 ```
 
 ## 技术栈

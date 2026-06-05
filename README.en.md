@@ -17,26 +17,32 @@ Supports queries like "where are my keys?", "blue backpack", or "passport drawer
 ## Architecture
 
 ```mermaid
+%%{init:{"theme":"base","themeVariables":{"primaryTextColor":"#0a1f3d","lineColor":"#90a4ae","fontFamily":"system-ui,sans-serif","fontSize":"13px"}}}%%
 graph TB
-    subgraph Frontend
-        A[React PWA]
-        B[Static Fallback UI]
+    classDef fe fill:#dce5ef,stroke:#3a6b9f,stroke-width:1.4px,color:#0a1f3d
+    classDef be fill:#e2e8f0,stroke:#4a6278,stroke-width:1.4px,color:#0a1f3d
+    classDef db fill:#ede8e0,stroke:#7d6e5d,stroke-width:1.4px,color:#0a1f3d
+    classDef ai fill:#e6dfe8,stroke:#6b4d7a,stroke-width:1.4px,color:#0a1f3d
+
+    subgraph Frontend["Frontend"]
+        A(["React PWA"]):::fe
+        B(["Static Fallback UI"]):::fe
     end
 
-    subgraph Backend FastAPI
-        C[API Routes]
-        D[RecallLens Service]
+    subgraph Backend["Backend · FastAPI"]
+        C["API Routes"]:::be
+        D["RecallLens Service"]:::be
     end
 
-    subgraph Data Layer
-        E[(SQLite)]
-        F[Local Image Storage]
-        G[Vector Index<br/>FAISS / NumPy]
+    subgraph Data["Data Layer"]
+        E[("SQLite")]:::db
+        F["Local Image Storage"]:::db
+        G["Vector Index · FAISS / NumPy"]:::db
     end
 
-    subgraph AI Models
-        H[CLIP<br/>open_clip_torch]
-        I[Semantic Labeler]
+    subgraph Model["AI Models"]
+        H["CLIP · open_clip_torch"]:::ai
+        I["Semantic Labeler"]:::ai
     end
 
     A --> C
@@ -71,6 +77,7 @@ RECALLLENS_EMBEDDER=hash uv run uvicorn backend.app.main:app --reload --port 800
 ## Upload Flow
 
 ```mermaid
+%%{init:{"theme":"base","themeVariables":{"primaryTextColor":"#0a1f3d","lineColor":"#7a8f9e","actorTextColor":"#0a1f3d","actorBkg":"#dce5ef","actorBorder":"#3a6b9f","actorLineColor":"#7a8f9e","noteBkgColor":"#f5f0eb","noteTextColor":"#0a1f3d","noteBorderColor":"#a09080","labelBoxBkgColor":"#e2e8f0","labelBoxBorderColor":"#4a6278","labelTextColor":"#0a1f3d","loopTextColor":"#0a1f3d","fontFamily":"system-ui,sans-serif","fontSize":"13px"}}}%%
 sequenceDiagram
     participant U as User
     participant API as FastAPI
@@ -81,33 +88,46 @@ sequenceDiagram
     participant DB as SQLite
 
     U->>API: POST /api/images (image + optional metadata)
-    API->>S: Save original + generate thumbnail
-    S->>DB: Insert image record (status: processing)
-    S->>E: Encode image vector
-    E->>L: Generate semantic tags (object/scene/color)
-    E->>V: Add to vector index
-    V->>DB: Update record (status: indexed)
+    rect rgba(220, 229, 239, 0.15)
+        API->>S: Save original + generate thumbnail
+        S->>DB: Insert image record (status: processing)
+    end
+    rect rgba(230, 223, 232, 0.2)
+        S->>E: Encode image vector
+        E->>L: Generate semantic tags (object / scene / color)
+        E->>V: Add to vector index
+    end
+    rect rgba(237, 232, 224, 0.15)
+        V->>DB: Update record (status: indexed)
+    end
     API-->>U: Return image record + metadata
 ```
 
 ## Search Flow
 
 ```mermaid
-flowchart TD
-    A[User enters query text] --> B[CLIP encodes query vector]
-    B --> C[Vector index Top-K retrieval]
-    C --> D{Parse filters}
-    D -->|Explicit| E[Use capturedFrom / capturedTo / locationText]
-    D -->|Not specified| F[Infer date range from query text]
-    E --> G[Filter candidates]
+%%{init:{"theme":"base","themeVariables":{"primaryTextColor":"#0a1f3d","lineColor":"#7a8f9e","fontFamily":"system-ui,sans-serif","fontSize":"13px"}}}%%
+flowchart LR
+    classDef input fill:#dce5ef,stroke:#3a6b9f,stroke-width:1.4px,color:#0a1f3d
+    classDef process fill:#e2e8f0,stroke:#4a6278,stroke-width:1.4px,color:#0a1f3d
+    classDef decision fill:#f5f0eb,stroke:#7d6e5d,stroke-width:1.4px,color:#0a1f3d
+    classDef score fill:#e6dfe8,stroke:#6b4d7a,stroke-width:1.4px,color:#0a1f3d
+    classDef result fill:#dce5ef,stroke:#3a6b9f,stroke-width:1.4px,color:#0a1f3d
+
+    A["Query Text"]:::input --> B["CLIP Encode Vector"]:::process
+    B --> C["Vector Index Top-K"]:::process
+    C --> D{"Parse Filters"}:::decision
+    D -->|"Explicit"| E["capturedFrom / To<br/>locationText"]:::process
+    D -->|"Not specified"| F["Infer Date Range"]:::process
+    E --> G["Filter Candidates"]:::process
     F --> G
-    G --> H[Hybrid scoring]
-    H --> I[Vector semantic match × 0.65]
-    H --> J[Metadata boost<br/>filename / notes / tags / location]
-    I --> K[Merge, sort, return Top-N]
+    G --> H["Hybrid Scoring"]:::score
+    H --> I["Vector Match × 0.65"]:::score
+    H --> J["Metadata Boost"]:::score
+    I --> K["Merge & Sort Top-N"]:::result
     J --> K
-    K --> L[Save query record]
-    L --> M[Return search results]
+    K --> L["Save Query Record"]:::result
+    L --> M["Return Results"]:::result
 ```
 
 ## Tech Stack

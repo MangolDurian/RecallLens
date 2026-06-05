@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.venv/
+.uv-cache/
+.npm-cache/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+
+node_modules/
+frontend/dist/
+
+data/
